@@ -1,4 +1,4 @@
-# simple-api-to-db
+# simple web(req param) to db
 Run web server, listen for correct call and write call's param to db
 
 This program uses Sqllite dbms.
