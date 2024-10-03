@@ -7,8 +7,9 @@ import (
 	"time"
 
 	// change this path for your project
-	"api-to-db/internal/logging"
-	"api-to-db/internal/rotatefiles"
+	hw "web-to-db/internal/handle-web"
+	"web-to-db/internal/logging"
+	"web-to-db/internal/rotatefiles"
 )
 
 // log default path & logs to keep after rotation
@@ -16,34 +17,6 @@ const (
 	defaultLogPath    = "logs"
 	defaultLogsToKeep = 3
 )
-
-// http handlers
-func handler(w http.ResponseWriter, r *http.Request) {
-	w.Write([]byte("HELLO!"))
-}
-
-// extract query parameter
-func postHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method == "POST" {
-		log.Printf("Got query: %v", r.URL.String())
-
-		if r.URL.Query().Has("name") {
-			log.Printf("Name: %s", r.URL.Query().Get("name"))
-			w.Write([]byte("OK"))
-			return
-		}
-
-		w.Write([]byte("No `name` parameter!\n"))
-	}
-
-	w.Write([]byte("Only POST allowed!\n"))
-	log.Printf("wrong parameter in POST: %v\n", r.URL.String())
-}
-
-func registerHanlers() {
-	http.HandleFunc("/", handler)
-	http.HandleFunc("/body", postHandler)
-}
 
 func main() {
 	// flags
@@ -69,10 +42,8 @@ func main() {
 
 	// starting web server
 	mux := http.DefaultServeMux
-	registerHanlers()
-	errMux := http.ListenAndServe(":3000", mux)
-	if err != nil {
-		log.Fatalf("failed to run server:\n\t%v", errMux)
+	if err := hw.StartWebServer(":3000", mux); err != nil {
+		log.Fatalf("failed to start web server:\n\t%v", err)
 	}
 
 	// count & print estimated time
