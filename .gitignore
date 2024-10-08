@@ -4,9 +4,10 @@
 # except
 !README.md
 !.gitignore
+!go.mod
 
 # main packages
-!cmd/myapp/myapp.go
+!cmd/http-param-to-db/http-param-to-db.go
 
 # internal packages
 !internal/logging/logging.go
