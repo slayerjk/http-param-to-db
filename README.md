@@ -5,4 +5,4 @@ This program uses Sqllite dbms.
 
 DB is simple: 
     table requests with columns:
-        ID(pk), Name(text, NOT NULL), Is_Processed(0(failed)/1(succeeded)/NULL(na))
+        ID(pk), Name(text, NOT NULL, UNIQUE), Is_Processed(0(failed)/1(succeeded)/NULL(na))

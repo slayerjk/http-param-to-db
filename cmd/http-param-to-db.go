@@ -6,8 +6,8 @@ import (
 	"net/http"
 
 	// change this path for your project
-	hw "web-to-db/internal/handle-web"
-	"web-to-db/internal/logging"
+	hw "http-param-to-db/internal/handle-web"
+	"http-param-to-db/internal/logging"
 )
 
 // log default path & logs to keep after rotation
