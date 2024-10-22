@@ -12,3 +12,6 @@
 # internal packages
 !internal/logging/logging.go
 !internal/rotatefiles/rotatefiles.go
+
+# data
+!data_BLANK.db

@@ -5,8 +5,14 @@ import (
 	"log"
 	"net/http"
 
+	// sqllite support
+	"database/sql"
+
+	_ "github.com/ncruces/go-sqlite3/driver"
+	_ "github.com/ncruces/go-sqlite3/embed"
+
 	// change this path for your project
-	hw "http-param-to-db/internal/handle-web"
+	// hw "http-param-to-db/internal/handle-web"
 	"http-param-to-db/internal/logging"
 )
 
@@ -14,7 +20,83 @@ import (
 const (
 	defaultLogPath    = "logs"
 	defaultLogsToKeep = 3
+	paramName         = "value"
+	dbFile            = "data.db"
 )
+
+// root http handler
+func handler(w http.ResponseWriter, r *http.Request) {
+	w.Write([]byte("HELLO!"))
+}
+
+// extract query parameter handler
+func postHandler(w http.ResponseWriter, r *http.Request) {
+	// process only POST requests
+	if r.Method == "POST" {
+		log.Printf("Got query: %v", r.URL.String())
+
+		// porcess only request with paramName(value) in it
+		if r.URL.Query().Has(paramName) {
+			paramVal := r.URL.Query().Get(paramName)
+
+			// skip empty param
+			if len(paramVal) == 0 {
+				log.Printf("empty %s param posted\n", paramName)
+				w.Write([]byte("Empty param"))
+				return
+			}
+
+			// TODO: add check for name regexp, must be(?) "RP\d+"
+
+			log.Printf("Param posted: %s", paramVal)
+			w.Write([]byte("OK"))
+
+			// open db
+			db, err := sql.Open("sqlite3", "file:"+dbFile)
+			if err != nil {
+				log.Fatalf("failed to open db:\n\t%v", err)
+			}
+			defer db.Close()
+
+			// insert name param into db
+			_, errI := db.Exec("INSERT INTO Data(Value) values(?)", paramVal)
+			if errI != nil {
+				// TODO: mail it
+				log.Printf("failed to insert %s param into db:\n\t%v\n", paramName, errI)
+			}
+
+			log.Printf("%s param successfully processed, waiting for next request", paramVal)
+			db.Close()
+			return
+		}
+
+		log.Printf("No 'name' param in POST")
+		w.Write([]byte("No 'name' parameter!\n"))
+		return
+	}
+
+	w.Write([]byte("Only POST allowed!\n"))
+	log.Printf("wrong parameter in POST: %v\n", r.URL.String())
+}
+
+// Register HTTP handlers
+func registerHanlers() {
+	http.HandleFunc("/", handler)
+	http.HandleFunc("/api", postHandler)
+}
+
+// Start Web Server
+func StartWebServer(address string, mux *http.ServeMux) error {
+	registerHanlers()
+
+	if err := http.ListenAndServe(address, mux); err != nil {
+		return err
+	}
+
+	log.Println("STARTED!")
+
+	return nil
+}
 
 func main() {
 	// flags
@@ -44,18 +126,7 @@ func main() {
 
 	log.Printf("Http server is going to be started on port %s", *httpPort)
 
-	if err := hw.StartWebServer(":"+*httpPort, mux); err != nil {
+	if err := StartWebServer(":"+*httpPort, mux); err != nil {
 		log.Fatalf("failed to start web server:\n\t%v", err)
 	}
-
-	// // count & print estimated time
-	// endTime := time.Now()
-	// log.Printf("Program Done\n\tEstimated time is %f seconds", endTime.Sub(startTime).Seconds())
-
-	// // close logfile and rotate logs
-	// logFile.Close()
-
-	// if err := rotatefiles.RotateFilesByMtime(*logDir, *logsToKeep); err != nil {
-	// 	log.Fatalf("failed to rotate logs:\n\t%s", err)
-	// }
 }
