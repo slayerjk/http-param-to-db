@@ -2,8 +2,10 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"log"
 	"net/http"
+	"time"
 
 	// sqllite support
 	"database/sql"
@@ -14,15 +16,19 @@ import (
 	// change this path for your project
 	// hw "http-param-to-db/internal/handle-web"
 	"http-param-to-db/internal/logging"
+	"http-param-to-db/internal/mailing"
 )
 
 // log default path & logs to keep after rotation
 const (
+	appName           = "http-param-to-db"
 	defaultLogPath    = "logs"
 	defaultLogsToKeep = 3
 	paramName         = "value"
 	dbFile            = "data.db"
 )
+
+var startTime = time.Now()
 
 // root http handler
 func handler(w http.ResponseWriter, r *http.Request) {
@@ -47,13 +53,15 @@ func postHandler(w http.ResponseWriter, r *http.Request) {
 			}
 
 			// TODO: add check for name regexp, must be(?) "RP\d+"
-
-			log.Printf("Param posted: %s", paramVal)
+			paramPosted := fmt.Sprintf("Param posted: %s", paramVal)
+			mailing.SendPlainEmailWoAuth("mailing.json", "report", appName, []byte(paramPosted), startTime)
+			log.Println(paramPosted)
 			w.Write([]byte("OK"))
 
 			// open db
 			db, err := sql.Open("sqlite3", "file:"+dbFile)
 			if err != nil {
+				// TODO: add 'error' email
 				log.Fatalf("failed to open db:\n\t%v", err)
 			}
 			defer db.Close()
@@ -61,11 +69,13 @@ func postHandler(w http.ResponseWriter, r *http.Request) {
 			// insert name param into db
 			_, errI := db.Exec("INSERT INTO Data(Value) values(?)", paramVal)
 			if errI != nil {
-				// TODO: mail it
+				// TODO: add 'error' email
 				log.Printf("failed to insert %s param into db:\n\t%v\n", paramName, errI)
 			}
 
-			log.Printf("%s param successfully processed, waiting for next request", paramVal)
+			paramProcessed := fmt.Sprintf("%s param successfully processed, waiting for next request", paramVal)
+			mailing.SendPlainEmailWoAuth("mailing.json", "report", appName, []byte(paramProcessed), startTime)
+			log.Println(paramProcessed)
 			db.Close()
 			return
 		}
@@ -106,8 +116,6 @@ func main() {
 	flag.Parse()
 
 	// logging
-	appName := "http-param-to-db"
-
 	logFile, err := logging.StartLogging(appName, *logDir, 3)
 	if err != nil {
 		log.Fatalf("failed to start logging:\n\t%s", err)

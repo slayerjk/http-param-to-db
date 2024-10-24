@@ -12,6 +12,8 @@
 # internal packages
 !internal/logging/logging.go
 !internal/rotatefiles/rotatefiles.go
+!inernal/mailing/mailing.go
 
 # data
 !data_BLANK.db
+!mailing_BLANK.json
