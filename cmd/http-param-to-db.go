@@ -13,8 +13,6 @@ import (
 	_ "github.com/ncruces/go-sqlite3/driver"
 	_ "github.com/ncruces/go-sqlite3/embed"
 
-	// change this path for your project
-	// hw "http-param-to-db/internal/handle-web"
 	"http-param-to-db/internal/logging"
 	"http-param-to-db/internal/mailing"
 )
