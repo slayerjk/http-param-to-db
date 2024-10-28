@@ -13,6 +13,7 @@ import (
 	_ "github.com/ncruces/go-sqlite3/driver"
 	_ "github.com/ncruces/go-sqlite3/embed"
 
+	// internal packages
 	"github.com/slayerjk/http-param-to-db/internal/logging"
 	"github.com/slayerjk/http-param-to-db/internal/mailing"
 )

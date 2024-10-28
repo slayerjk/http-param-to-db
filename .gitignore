@@ -5,10 +5,10 @@
 !README.md
 !.gitignore
 !go.mod
-!.goreleaser.yaml
 
 # main packages
-!cmd/http-param-to-db/http-param-to-db.go
+!cmd/http-param-to-db.go
+!cmd/.goreleaser.yaml
 
 # internal packages
 !internal/logging/logging.go
