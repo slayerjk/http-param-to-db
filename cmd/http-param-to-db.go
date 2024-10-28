@@ -13,8 +13,8 @@ import (
 	_ "github.com/ncruces/go-sqlite3/driver"
 	_ "github.com/ncruces/go-sqlite3/embed"
 
-	"http-param-to-db/internal/logging"
-	"http-param-to-db/internal/mailing"
+	"github.com/slayerjk/http-param-to-db/internal/logging"
+	"github.com/slayerjk/http-param-to-db/internal/mailing"
 )
 
 // log default path & logs to keep after rotation
