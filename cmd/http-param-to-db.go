@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"os"
 	"time"
 
 	// sqllite support
@@ -28,7 +29,9 @@ const (
 	mailingFile       = "data/mailing.json"
 )
 
-var startTime = time.Now()
+var (
+	startTime = time.Now()
+)
 
 // root http handler
 func handler(w http.ResponseWriter, r *http.Request) {
@@ -54,7 +57,8 @@ func postHandler(w http.ResponseWriter, r *http.Request) {
 
 			// TODO: add check for name regexp, must be(?) "RP\d+"
 			paramPosted := fmt.Sprintf("Param posted: %s", paramVal)
-			mailing.SendPlainEmailWoAuth("mailing.json", "report", appName, []byte(paramPosted), startTime)
+			// mail this error
+			mailing.SendPlainEmailWoAuth(mailingFile, "report", appName, []byte(paramPosted), time.Now())
 			log.Println(paramPosted)
 			w.Write([]byte("OK"))
 
@@ -70,11 +74,15 @@ func postHandler(w http.ResponseWriter, r *http.Request) {
 			_, errI := db.Exec("INSERT INTO Data(Value) values(?)", paramVal)
 			if errI != nil {
 				// TODO: add 'error' email
-				log.Printf("failed to insert %s param into db:\n\t%v\n", paramName, errI)
+				paramDbInsert := fmt.Sprintf("failed to insert %s param into db:\n\t%v\n", paramName, errI)
+				// mail this error
+				mailing.SendPlainEmailWoAuth(mailingFile, "report", appName, []byte(paramDbInsert), time.Now())
+				log.Println(paramDbInsert)
 			}
 
 			paramProcessed := fmt.Sprintf("%s param successfully processed, waiting for next request", paramVal)
-			mailing.SendPlainEmailWoAuth(mailingFile, "report", appName, []byte(paramProcessed), startTime)
+			// mail this error
+			mailing.SendPlainEmailWoAuth(mailingFile, "report", appName, []byte(paramProcessed), time.Now())
 			log.Println(paramProcessed)
 			db.Close()
 			return
@@ -109,6 +117,13 @@ func StartWebServer(address string, mux *http.ServeMux) error {
 }
 
 func main() {
+	// no point to start program if there is no db file
+	if _, err := os.Stat(dbFile); err != nil {
+		// mail this error
+		mailing.SendPlainEmailWoAuth(mailingFile, "report", appName, []byte("cant find db file"), time.Now())
+		log.Fatalf("db file(%s) not exist", dbFile)
+	}
+
 	// flags
 	logDir := flag.String("log-dir", defaultLogPath, "set custom log dir")
 	// logsToKeep := flag.Int("keep-logs", defaultLogsToKeep, "set number of logs to keep after rotation")
