@@ -1,4 +1,4 @@
-module http-param-to-db
+module github.com/slayerjk/http-param-to-db
 
 go 1.23.0
 
