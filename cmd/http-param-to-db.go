@@ -122,7 +122,7 @@ const (
 
 // defining default values
 var (
-	LogPath     = getExePath() + "/logs"
+	LogPath     = getExePath() + "/logs" + "_http-param-to-db"
 	LogsToKeep  = 3
 	dbFile      = getExePath() + "/data/data.db"
 	mailingFile = getExePath() + "/data/mailing.json"
