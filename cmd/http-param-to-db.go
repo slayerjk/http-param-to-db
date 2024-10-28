@@ -6,6 +6,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"path/filepath"
 	"time"
 
 	// sqllite support
@@ -17,20 +18,6 @@ import (
 	// internal packages
 	"github.com/slayerjk/http-param-to-db/internal/logging"
 	"github.com/slayerjk/http-param-to-db/internal/mailing"
-)
-
-// log default path & logs to keep after rotation
-const (
-	appName           = "http-param-to-db"
-	defaultLogPath    = "logs"
-	defaultLogsToKeep = 3
-	paramName         = "value"
-	dbFile            = "data/data.db"
-	mailingFile       = "data/mailing.json"
-)
-
-var (
-	startTime = time.Now()
 )
 
 // root http handler
@@ -81,15 +68,15 @@ func postHandler(w http.ResponseWriter, r *http.Request) {
 			}
 
 			paramProcessed := fmt.Sprintf("%s param successfully processed, waiting for next request", paramVal)
-			// mail this error
+			// mail this
 			mailing.SendPlainEmailWoAuth(mailingFile, "report", appName, []byte(paramProcessed), time.Now())
 			log.Println(paramProcessed)
 			db.Close()
 			return
 		}
 
-		log.Printf("No 'name' param in POST")
-		w.Write([]byte("No 'name' parameter!\n"))
+		log.Printf("No '%s' param in POST", paramName)
+		w.Write([]byte("There is no correct parameter!\n"))
 		return
 	}
 
@@ -104,34 +91,52 @@ func registerHanlers() {
 }
 
 // Start Web Server
-func StartWebServer(address string, mux *http.ServeMux) error {
+func StartWebServer(address, dbFile string, mux *http.ServeMux) error {
 	registerHanlers()
 
 	if err := http.ListenAndServe(address, mux); err != nil {
 		return err
 	}
 
-	log.Println("STARTED!")
-
 	return nil
 }
 
-func main() {
-	// no point to start program if there is no db file
-	if _, err := os.Stat(dbFile); err != nil {
-		// mail this error
-		mailing.SendPlainEmailWoAuth(mailingFile, "report", appName, []byte("cant find db file"), time.Now())
-		log.Fatalf("db file(%s) not exist", dbFile)
+// get full path of Go executable
+func getExePath() string {
+	// get executable's working dir
+	exe, err := os.Executable()
+	if err != nil {
+		log.Fatal(err)
 	}
 
+	exePath := filepath.Dir(exe)
+
+	return exePath
+}
+
+// log default path & logs to keep after rotation
+const (
+	appName   = "http-param-to-db"
+	paramName = "value"
+)
+
+// defining default values
+var (
+	LogPath     = getExePath() + "/logs"
+	LogsToKeep  = 3
+	dbFile      = getExePath() + "/data/data.db"
+	mailingFile = getExePath() + "/data/mailing.json"
+)
+
+func main() {
 	// flags
-	logDir := flag.String("log-dir", defaultLogPath, "set custom log dir")
+	logsDir := flag.String("log-dir", LogPath, "set custom log dir")
 	// logsToKeep := flag.Int("keep-logs", defaultLogsToKeep, "set number of logs to keep after rotation")
 	httpPort := flag.String("port", "3000", "http server port")
 	flag.Parse()
 
 	// logging
-	logFile, err := logging.StartLogging(appName, *logDir, 3)
+	logFile, err := logging.StartLogging(appName, *logsDir, LogsToKeep)
 	if err != nil {
 		log.Fatalf("failed to start logging:\n\t%s", err)
 	}
@@ -144,12 +149,19 @@ func main() {
 
 	// main code here
 
+	// no point to start program if there is no db file
+	if _, err := os.Stat(dbFile); err != nil {
+		// mail this error
+		mailing.SendPlainEmailWoAuth(mailingFile, "report", appName, []byte("cant find db file"), time.Now())
+		log.Fatalf("db file(%s) doesn't exist", dbFile)
+	}
+
 	// starting web server
 	mux := http.DefaultServeMux
 
 	log.Printf("Http server is going to be started on port %s", *httpPort)
 
-	if err := StartWebServer(":"+*httpPort, mux); err != nil {
+	if err := StartWebServer(":"+*httpPort, dbFile, mux); err != nil {
 		log.Fatalf("failed to start web server:\n\t%v", err)
 	}
 }
