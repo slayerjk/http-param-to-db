@@ -16,6 +16,6 @@
 !inernal/mailing/mailing.go
 
 # data
-!data_BLANK.db
-!mailing_BLANK.json
+!data/data_BLANK.db
+!data/mailing_BLANK.json
 
