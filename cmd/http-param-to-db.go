@@ -50,7 +50,7 @@ func postHandler(w http.ResponseWriter, r *http.Request) {
 
 			// skip empty param
 			if len(paramVal) == 0 {
-				log.Printf("empty %s param posted\n", paramName)
+				log.Printf("empty '%s' param posted\n", paramName)
 				w.Write([]byte("Empty param"))
 				return
 			}
@@ -74,7 +74,7 @@ func postHandler(w http.ResponseWriter, r *http.Request) {
 			_, errI := db.Exec("INSERT INTO Data(Value) values(?)", paramVal)
 			if errI != nil {
 				// TODO: add 'error' email
-				paramDbInsert := fmt.Sprintf("failed to insert %s param into db:\n\t%v\n", paramName, errI)
+				paramDbInsert := fmt.Sprintf("failed to insert '%s' param into db:\n\t%v\n", paramVal, errI)
 				// mail this error
 				mailing.SendPlainEmailWoAuth(mailingFile, "report", appName, []byte(paramDbInsert), time.Now())
 				log.Println(paramDbInsert)
