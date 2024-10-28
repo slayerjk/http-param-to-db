@@ -24,7 +24,8 @@ const (
 	defaultLogPath    = "logs"
 	defaultLogsToKeep = 3
 	paramName         = "value"
-	dbFile            = "data.db"
+	dbFile            = "data/data.db"
+	mailingFile       = "data/mailing.json"
 )
 
 var startTime = time.Now()
@@ -73,7 +74,7 @@ func postHandler(w http.ResponseWriter, r *http.Request) {
 			}
 
 			paramProcessed := fmt.Sprintf("%s param successfully processed, waiting for next request", paramVal)
-			mailing.SendPlainEmailWoAuth("mailing.json", "report", appName, []byte(paramProcessed), startTime)
+			mailing.SendPlainEmailWoAuth(mailingFile, "report", appName, []byte(paramProcessed), startTime)
 			log.Println(paramProcessed)
 			db.Close()
 			return
