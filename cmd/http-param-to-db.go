@@ -58,9 +58,9 @@ func postHandler(w http.ResponseWriter, r *http.Request) {
 			defer db.Close()
 
 			// insert name param into db
-			_, errI := db.Exec("INSERT INTO Data(Value) values(?)", paramVal)
+			postedDate := time.Now().Format("02.01.2006 15:04:05")
+			_, errI := db.Exec("INSERT INTO Data (Value, Posted_Date) values(?, ?)", paramVal, postedDate)
 			if errI != nil {
-				// TODO: add 'error' email
 				paramDbInsert := fmt.Sprintf("failed to insert '%s' param into db:\n\t%v\n", paramVal, errI)
 				// mail this error
 				mailing.SendPlainEmailWoAuth(mailingFile, "report", appName, []byte(paramDbInsert), time.Now())

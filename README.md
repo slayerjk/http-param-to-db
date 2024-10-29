@@ -11,12 +11,17 @@ DB is simple:
     table 'Data' with columns:
         ID(INTEGER PRIMARY KEY), 
         Value(TEXT NOT NULL UNIQUE), 
+        Posted_Date(TEXT),
         Processed(INTEGER(0(failed)/1(succeeded)/NULL(na)))
+        Processed_Date(TEXT)
 ```
-CREATE TABLE Data (
-    Id INTEGER PRIMARY KEY, 
-    Value TEXT NOT NULL UNIQUE, 
-    Processed INTEGER
+CREATE TABLE "Data" (
+	"ID"	INTEGER,
+	"Value"	TEXT NOT NULL UNIQUE,
+	"Posted_Date"	TEXT,
+	"Processed"	INTEGER,
+	"Processed_Date"	TEXT,
+	PRIMARY KEY("ID")
 );
 ```
 
