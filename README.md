@@ -4,7 +4,7 @@ This program uses Sqllite3 dbms. Required github.com/ncruces/go-sqlite3/driver.
 
 Workflow is follow:
 1. run web server(default port is 3000) and listen for POST with "value" parameter in URL like 
-    https://<your address>:3000/api?value="<your param value>"
+    ```https://<your address>:3000/api?value=<your param value>```
 2. then if "value" param is found and it's not empty it's written to the data.db
 
 DB is simple: 
