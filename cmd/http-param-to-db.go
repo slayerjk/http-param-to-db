@@ -37,7 +37,6 @@ var (
 	dbDataTable        string = "Data"
 	dbValueColumn      string = "Value"
 	dbPostedDateColumn string = "Posted_Date"
-	mode               string = "body"
 	// bodyValue          string = "UUID"
 )
 
@@ -47,6 +46,7 @@ type Request struct {
 }
 
 // get full path of Go executable
+// TODO: hide to internal
 func getExePath() string {
 	// get executable's working dir
 	exe, err := os.Executable()
@@ -64,7 +64,7 @@ func main() {
 	logsDir := flag.String("log-dir", LogPath, "set custom log dir")
 	// logsToKeep := flag.Int("keep-logs", defaultLogsToKeep, "set number of logs to keep after rotation")
 	httpPort := flag.String("port", "3000", "http server port")
-	mode := flag.String("mode", mode, "work mode: wait for url 'param' or 'body' contente(json)")
+	mode := flag.String("mode", "body", "work mode: wait for url 'param' or 'body' contente(json)")
 	flag.Parse()
 
 	// logging

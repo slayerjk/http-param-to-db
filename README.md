@@ -1,4 +1,4 @@
-What program does: run web server, listen for correct call and write call's param("value") to db.
+What program does: run web server, listen for correct call and write call's param(url param('value') or json body('UUID')) to db.
 
 This program uses Sqllite3 dbms. Required github.com/ncruces/go-sqlite3/driver.
 
@@ -7,10 +7,15 @@ Flags:
 * httpPort
 * mode
 
-Workflow is follow:
-1. run web server(default port is 3000) and listen for POST with "value" parameter in URL like 
+'mode' value may be:
+* body(default) - run web server(default port is 3000) and listen for POST with application/json body like ```{"UUID" : "data$12345",    "creationDate" : "2021:08:01 14:22"} ``` URL will be: ```https://<your address>:3000/api```
+* param - run web server(default port is 3000) and listen for POST with "value" parameter in URL like 
     ```https://<your address>:3000/api?value=<your param value>```
-2. then if "value" param is found and it's not empty it's written to the data.db
+
+Workflow is follow:
+1. run web server(default port is 3000) and listen for POST according to 'mode' parameter.
+    ```https://<your address>:3000/api?value=<your param value>```
+2. then if  param is found and it's not empty it's written to the data.db
 
 DB is simple: 
     table 'Data' with columns:
