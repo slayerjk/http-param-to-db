@@ -2,6 +2,11 @@ What program does: run web server, listen for correct call and write call's para
 
 This program uses Sqllite3 dbms. Required github.com/ncruces/go-sqlite3/driver.
 
+Flags:
+* logsDir
+* httpPort
+* mode
+
 Workflow is follow:
 1. run web server(default port is 3000) and listen for POST with "value" parameter in URL like 
     ```https://<your address>:3000/api?value=<your param value>```
