@@ -45,7 +45,7 @@ func postHandler(w http.ResponseWriter, r *http.Request) {
 			// TODO: add check for name regexp, must be(?) "RP\d+"
 			paramPosted := fmt.Sprintf("Param posted: %s", paramVal)
 			// mail this error
-			mailing.SendPlainEmailWoAuth(mailingFile, "report", appName, []byte(paramPosted), time.Now())
+			mailing.SendPlainEmailWoAuth(mailingFile, "report", appName, []byte(paramPosted))
 			log.Println(paramPosted)
 			w.Write([]byte("OK"))
 
@@ -63,13 +63,13 @@ func postHandler(w http.ResponseWriter, r *http.Request) {
 			if errI != nil {
 				paramDbInsert := fmt.Sprintf("failed to insert '%s' param into db:\n\t%v\n", paramVal, errI)
 				// mail this error
-				mailing.SendPlainEmailWoAuth(mailingFile, "report", appName, []byte(paramDbInsert), time.Now())
+				mailing.SendPlainEmailWoAuth(mailingFile, "report", appName, []byte(paramDbInsert))
 				log.Println(paramDbInsert)
 			}
 
 			paramProcessed := fmt.Sprintf("%s param successfully processed, waiting for next request", paramVal)
 			// mail this
-			mailing.SendPlainEmailWoAuth(mailingFile, "report", appName, []byte(paramProcessed), time.Now())
+			mailing.SendPlainEmailWoAuth(mailingFile, "report", appName, []byte(paramProcessed))
 			log.Println(paramProcessed)
 			db.Close()
 			return
@@ -152,7 +152,7 @@ func main() {
 	// no point to start program if there is no db file
 	if _, err := os.Stat(dbFile); err != nil {
 		// mail this error
-		mailing.SendPlainEmailWoAuth(mailingFile, "report", appName, []byte("cant find db file"), time.Now())
+		mailing.SendPlainEmailWoAuth(mailingFile, "report", appName, []byte("cant find db file"))
 		log.Fatalf("db file(%s) doesn't exist", dbFile)
 	}
 
