@@ -127,6 +127,7 @@ func main() {
 					w.Write([]byte("bad request's body"))
 					return
 				}
+				log.Printf("body posted is:\n\t%v", string(bytesBody))
 
 				// unmarshall json
 				errU := json.Unmarshal(bytesBody, &reqBody)
