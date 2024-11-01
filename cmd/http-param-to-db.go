@@ -8,7 +8,6 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"path/filepath"
 	"time"
 
 	// sqllite support
@@ -20,6 +19,7 @@ import (
 	// internal packages
 	"github.com/slayerjk/http-param-to-db/internal/logging"
 	"github.com/slayerjk/http-param-to-db/internal/mailing"
+	"github.com/slayerjk/http-param-to-db/internal/vafswork"
 )
 
 // log default path & logs to keep after rotation
@@ -30,10 +30,10 @@ const (
 
 // defining default values
 var (
-	LogPath            string = getExePath() + "/logs" + "_http-param-to-db"
+	LogPath            string = vafswork.GetExePath() + "/logs" + "_http-param-to-db"
+	dbFile             string = vafswork.GetExePath() + "/data/data.db"
+	mailingFile        string = vafswork.GetExePath() + "/data/mailing.json"
 	LogsToKeep         int    = 3
-	dbFile             string = getExePath() + "/data/data.db"
-	mailingFile        string = getExePath() + "/data/mailing.json"
 	dbDataTable        string = "Data"
 	dbValueColumn      string = "Value"
 	dbPostedDateColumn string = "Posted_Date"
@@ -45,20 +45,7 @@ type Request struct {
 	UUID string `json:"UUID"`
 }
 
-// get full path of Go executable
-// TODO: hide to internal
-func getExePath() string {
-	// get executable's working dir
-	exe, err := os.Executable()
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	exePath := filepath.Dir(exe)
-
-	return exePath
-}
-
+// TODO: refactor mails
 func main() {
 	// flags
 	logsDir := flag.String("log-dir", LogPath, "set custom log dir")

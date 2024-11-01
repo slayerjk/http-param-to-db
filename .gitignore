@@ -12,7 +12,7 @@
 
 # internal packages
 !internal/logging/logging.go
-!internal/rotatefiles/rotatefiles.go
+!internal/vafswork/vafswork.go
 !inernal/mailing/mailing.go
 
 # data
