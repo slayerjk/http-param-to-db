@@ -24,14 +24,8 @@ import (
 
 // log default path & logs to keep after rotation
 const (
-	appName   = "http-param-to-db"
-	paramName = "value"
+	appName = "http-param-to-db"
 )
-
-// set body struct
-type Request struct {
-	UUID string `json:"UUID"`
-}
 
 // TODO: refactor mails
 func main() {
@@ -43,7 +37,6 @@ func main() {
 		dbDataTable        string = "Data"
 		dbValueColumn      string = "Value"
 		dbPostedDateColumn string = "Posted_Date"
-		// bodyValue          string = "UUID"
 	)
 
 	// flags
@@ -51,6 +44,7 @@ func main() {
 	logsToKeep := flag.Int("keep-logs", 7, "set number of logs to keep after rotation")
 	httpPort := flag.String("port", "3000", "http server port")
 	mode := flag.String("mode", "body", "work mode: wait for url 'param' or 'body' contente(json)")
+	paramName := flag.String("param-name", "UUID", "param name/json value to process")
 	flag.Parse()
 
 	// logging
@@ -85,6 +79,7 @@ func main() {
 	postHandler := func(w http.ResponseWriter, r *http.Request) {
 		// define result var
 		var paramVal string
+
 		log.Printf("Got query: %s%s from %s, method: %s", r.Host, r.URL.Path, r.RemoteAddr, r.Method)
 
 		// process only POST requests
@@ -94,17 +89,17 @@ func main() {
 
 			case "param":
 				// porcess only request with paramName(value) in it
-				if !r.URL.Query().Has(paramName) {
+				if !r.URL.Query().Has(*paramName) {
 					w.Write([]byte("no param in POST"))
-					log.Printf("No '%s' param in POST", paramName)
+					log.Printf("No '%s' param in POST", *paramName)
 					return
 				}
 
-				paramVal = r.URL.Query().Get(paramName)
+				paramVal = r.URL.Query().Get(*paramName)
 
 				// skip empty param
 				if len(paramVal) == 0 {
-					log.Printf("empty '%s' param posted\n", paramName)
+					log.Printf("empty '%s' param posted\n", *paramName)
 					w.Write([]byte("empty param"))
 					return
 				}
@@ -117,8 +112,8 @@ func main() {
 				w.Write([]byte("OK"))
 
 			case "body":
-				// define request body struct
-				var reqBody Request
+				// define request body
+				var reqBody map[string]string
 
 				// read request body
 				bytesBody, errR := io.ReadAll(r.Body)
@@ -137,12 +132,23 @@ func main() {
 					return
 				}
 
-				if len(reqBody.UUID) == 0 {
-					log.Println("empty param in body")
-					w.Write([]byte("empty param in body"))
+				// check if there is map key(and value) of paramName
+				if _, ok := reqBody[*paramName]; !ok {
+					errParamNo := fmt.Sprintf("no required param(%s) in body", *paramName)
+					log.Println(errParamNo)
+					w.Write([]byte(errParamNo))
 					return
 				}
-				paramVal = reqBody.UUID
+
+				// check if param empty
+				paramVal = reqBody[*paramName]
+				if len(paramVal) == 0 {
+					errParamEmpty := fmt.Sprintf("empty param(%s) in body", *paramName)
+					log.Println(errParamEmpty)
+					w.Write([]byte(errParamEmpty))
+					return
+				}
+
 				w.Write([]byte("OK"))
 			}
 

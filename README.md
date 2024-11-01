@@ -3,12 +3,16 @@ What program does: run web server, listen for correct call and write call's para
 This program uses Sqllite3 dbms. Required github.com/ncruces/go-sqlite3/driver.
 
 Flags:
-* logsDir
-* httpPort
+* log-dir
+* keep-logs
+* port
 * mode
+* param-name
 
 'mode' value may be:
-* body(default) - run web server(default port is 3000) and listen for POST with application/json body like ```{"UUID" : "data$12345",    "creationDate" : "2021:08:01 14:22"} ``` URL will be: ```https://<your address>:3000/api```
+* body(default) - run web server(default port is 3000) and listen for POST with application/json body like ```{"UUID" : "data$12345",    "creationDate" : "2021:08:01 14:22"} ``` 
+    JSON must be flat, or at lease your param must be in root of json
+    URL will be: ```https://<your address>:3000/api```
 * param - run web server(default port is 3000) and listen for POST with "value" parameter in URL like 
     ```https://<your address>:3000/api?value=<your param value>```
 
