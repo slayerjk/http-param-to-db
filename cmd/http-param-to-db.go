@@ -28,18 +28,6 @@ const (
 	paramName = "value"
 )
 
-// defining default values
-var (
-	LogPath            string = vafswork.GetExePath() + "/logs" + "_http-param-to-db"
-	dbFile             string = vafswork.GetExePath() + "/data/data.db"
-	mailingFile        string = vafswork.GetExePath() + "/data/mailing.json"
-	LogsToKeep         int    = 3
-	dbDataTable        string = "Data"
-	dbValueColumn      string = "Value"
-	dbPostedDateColumn string = "Posted_Date"
-	// bodyValue          string = "UUID"
-)
-
 // set body struct
 type Request struct {
 	UUID string `json:"UUID"`
@@ -47,15 +35,26 @@ type Request struct {
 
 // TODO: refactor mails
 func main() {
+	// defining default values
+	var (
+		logPath            string = vafswork.GetExePath() + "/logs" + "_http-param-to-db"
+		dbFile             string = vafswork.GetExePath() + "/data/data.db"
+		mailingFile        string = vafswork.GetExePath() + "/data/mailing.json"
+		dbDataTable        string = "Data"
+		dbValueColumn      string = "Value"
+		dbPostedDateColumn string = "Posted_Date"
+		// bodyValue          string = "UUID"
+	)
+
 	// flags
-	logsDir := flag.String("log-dir", LogPath, "set custom log dir")
-	// logsToKeep := flag.Int("keep-logs", defaultLogsToKeep, "set number of logs to keep after rotation")
+	logsDir := flag.String("log-dir", logPath, "set custom log dir")
+	logsToKeep := flag.Int("keep-logs", 7, "set number of logs to keep after rotation")
 	httpPort := flag.String("port", "3000", "http server port")
 	mode := flag.String("mode", "body", "work mode: wait for url 'param' or 'body' contente(json)")
 	flag.Parse()
 
 	// logging
-	logFile, err := logging.StartLogging(appName, *logsDir, LogsToKeep)
+	logFile, err := logging.StartLogging(appName, *logsDir, *logsToKeep)
 	if err != nil {
 		log.Fatalf("failed to start logging:\n\t%s", err)
 	}
