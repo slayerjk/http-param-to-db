@@ -41,8 +41,3 @@ CREATE TABLE "Data" (
 
 data_BLANK.db - is just empty DB with stucture described above. 
 Rename it to data.db to use with application.
-
-Application params:
-    -log-dir: path to logdir; default is 'logs' in program's root
-    -port: port of web-srv to listen; default is 3000
-
