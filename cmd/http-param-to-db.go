@@ -77,6 +77,7 @@ func main() {
 
 	// root http handler
 	rootHandler := func(w http.ResponseWriter, r *http.Request) {
+		log.Printf("Got query: %s%s from %s, method: %s", r.Host, r.URL.Path, r.RemoteAddr, r.Method)
 		w.Write([]byte("HELLO!"))
 	}
 
@@ -84,10 +85,10 @@ func main() {
 	postHandler := func(w http.ResponseWriter, r *http.Request) {
 		// define result var
 		var paramVal string
+		log.Printf("Got query: %s%s from %s, method: %s", r.Host, r.URL.Path, r.RemoteAddr, r.Method)
 
 		// process only POST requests
 		if r.Method == "POST" {
-			log.Printf("Got query: %v", r.URL.String())
 
 			switch *mode {
 
@@ -104,14 +105,14 @@ func main() {
 				// skip empty param
 				if len(paramVal) == 0 {
 					log.Printf("empty '%s' param posted\n", paramName)
-					w.Write([]byte("Empty param"))
+					w.Write([]byte("empty param"))
 					return
 				}
 
 				// TODO: add check for name regexp, must be(?) "RP\d+" (data$11101)
 				paramPosted := fmt.Sprintf("Param posted: %s", paramVal)
 				// mail this error
-				mailing.SendPlainEmailWoAuth(mailingFile, "report", appName, []byte(paramPosted))
+				// mailing.SendPlainEmailWoAuth(mailingFile, "report", appName, []byte(paramPosted))
 				log.Println(paramPosted)
 				w.Write([]byte("OK"))
 
@@ -123,7 +124,7 @@ func main() {
 				bytesBody, errR := io.ReadAll(r.Body)
 				if errR != nil {
 					log.Printf("failed to read request body:\n\t%v\n", errR)
-					w.Write([]byte("Bad Request's Body"))
+					w.Write([]byte("bad request's body"))
 					return
 				}
 
@@ -131,6 +132,8 @@ func main() {
 				errU := json.Unmarshal(bytesBody, &reqBody)
 				if errU != nil {
 					log.Printf("failed to unmarshall request body:\n\t%v\n", errU)
+					w.Write([]byte("bad request's body"))
+					return
 				}
 
 				if len(reqBody.UUID) == 0 {
