@@ -63,10 +63,10 @@ func main() {
 	// main code here
 
 	// no point to start program if there is no db file
-	if _, err := os.Stat(dbFile); err != nil {
+	if _, errDb := os.Stat(dbFile); errDb != nil {
 		// mail this error
-		mailing.SendPlainEmailWoAuth(mailingFile, "report", appName, []byte("cant find db file"))
-		log.Fatalf("db file(%s) doesn't exist", dbFile)
+		mailing.SendPlainEmailWoAuth(mailingFile, "error", appName, []byte("cant find 'data/data.db' file"))
+		log.Fatalf("'data/data.db' file(%s) doesn't exist", dbFile)
 	}
 
 	// root http handler
@@ -113,7 +113,7 @@ func main() {
 
 			case "body":
 				// define request body
-				var reqBody map[string]string
+				var reqBody map[string]any
 
 				// read request body
 				bytesBody, errR := io.ReadAll(r.Body)
@@ -128,7 +128,6 @@ func main() {
 				errU := json.Unmarshal(bytesBody, &reqBody)
 				if errU != nil {
 					log.Printf("failed to unmarshall request body:\n\t%v\n", errU)
-					w.Write([]byte("bad request's body"))
 					return
 				}
 
@@ -141,7 +140,7 @@ func main() {
 				}
 
 				// check if param empty
-				paramVal = reqBody[*paramName]
+				paramVal = reqBody[*paramName].(string)
 				if len(paramVal) == 0 {
 					errParamEmpty := fmt.Sprintf("empty param(%s) in body", *paramName)
 					log.Println(errParamEmpty)
