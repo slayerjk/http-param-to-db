@@ -23,12 +23,6 @@ import (
 	"github.com/slayerjk/http-param-to-db/internal/vafswork"
 )
 
-// log default path & logs to keep after rotation
-const (
-	appName = "http-param-to-db"
-)
-
-// TODO: refactor mails
 func main() {
 	// defining default values
 	var (
@@ -42,6 +36,7 @@ func main() {
 	)
 
 	// flags
+	appName := flag.String("app-name", "MY-APP", "set application name(used for logs name, mailing subject, etc)")
 	logsDir := flag.String("log-dir", logPath, "set custom log dir")
 	// logsToKeep := flag.Int("keep-logs", 7, "set number of logs to keep after rotation")
 	httpPort := flag.String("port", "3000", "http server port")
@@ -51,7 +46,7 @@ func main() {
 	flag.Parse()
 
 	// logging
-	logFile, err := logging.StartLogging(appName, *logsDir, logsToKeep)
+	logFile, err := logging.StartLogging(*appName, *logsDir, logsToKeep)
 	if err != nil {
 		log.Fatalf("failed to start logging:\n\t%s", err)
 	}
@@ -68,7 +63,7 @@ func main() {
 	// no point to start program if there is no db file
 	if _, errDb := os.Stat(dbFile); errDb != nil {
 		// mail this error
-		mailing.SendPlainEmailWoAuth(mailingFile, "error", appName, []byte("cant find 'data/data.db' file"))
+		mailing.SendPlainEmailWoAuth(mailingFile, "error", *appName, []byte("cant find 'data/data.db' file"))
 		log.Fatalf("'data/data.db' file(%s) doesn't exist", dbFile)
 	}
 
@@ -187,14 +182,14 @@ func main() {
 			if errI != nil {
 				paramDbInsert := fmt.Sprintf("failed to insert '%s' param into db:\n\t%v\n", paramVal, errI)
 				// mail this error
-				mailing.SendPlainEmailWoAuth(mailingFile, "error", appName, []byte(paramDbInsert))
+				mailing.SendPlainEmailWoAuth(mailingFile, "error", *appName, []byte(paramDbInsert))
 				log.Println(paramDbInsert)
 				return
 			}
 
 			paramProcessed := fmt.Sprintf("%s param successfully processed, waiting for next request", paramVal)
 			// mail this
-			mailing.SendPlainEmailWoAuth(mailingFile, "report", appName, []byte(paramProcessed))
+			mailing.SendPlainEmailWoAuth(mailingFile, "report", *appName, []byte(paramProcessed))
 			log.Println(paramProcessed)
 			db.Close()
 			return
