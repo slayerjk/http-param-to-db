@@ -4,7 +4,6 @@ This program uses Sqllite3 dbms. Required github.com/ncruces/go-sqlite3/driver.
 
 Flags:
 
-* app-name - set application name(used for logs name, mailing subject, etc); default is "MY-APP"
 * log-dir - path to logs dir; default is relative to exe - 'logs_http-param-to-db'
 * port - custom port for http server; default is 3000
 * mode - body/param; default is 'body'; read below
