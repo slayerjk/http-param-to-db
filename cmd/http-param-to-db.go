@@ -8,6 +8,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strings"
 	"time"
 
 	// sqllite support
@@ -37,18 +38,20 @@ func main() {
 		dbDataTable        string = "Data"
 		dbValueColumn      string = "Value"
 		dbPostedDateColumn string = "Posted_Date"
+		logsToKeep         int    = 7
 	)
 
 	// flags
 	logsDir := flag.String("log-dir", logPath, "set custom log dir")
-	logsToKeep := flag.Int("keep-logs", 7, "set number of logs to keep after rotation")
+	// logsToKeep := flag.Int("keep-logs", 7, "set number of logs to keep after rotation")
 	httpPort := flag.String("port", "3000", "http server port")
 	mode := flag.String("mode", "body", "work mode: wait for url 'param' or 'body' contente(json)")
 	paramName := flag.String("param-name", "UUID", "param name/json value to process")
+	bodyCondition := flag.String("body-condition", "", "additional json 'body' condition to accept, format is 'key:value'")
 	flag.Parse()
 
 	// logging
-	logFile, err := logging.StartLogging(appName, *logsDir, *logsToKeep)
+	logFile, err := logging.StartLogging(appName, *logsDir, logsToKeep)
 	if err != nil {
 		log.Fatalf("failed to start logging:\n\t%s", err)
 	}
@@ -113,7 +116,11 @@ func main() {
 
 			case "body":
 				// define request body
-				var reqBody map[string]any
+				var (
+					reqBody          map[string]any
+					bodyConditionKey string
+					bodyConditionVal string
+				)
 
 				// read request body
 				bytesBody, errR := io.ReadAll(r.Body)
@@ -122,14 +129,16 @@ func main() {
 					w.Write([]byte("bad request's body"))
 					return
 				}
-				log.Printf("body posted is:\n\t%v", string(bytesBody))
 
 				// unmarshall json
 				errU := json.Unmarshal(bytesBody, &reqBody)
 				if errU != nil {
 					log.Printf("failed to unmarshall request body:\n\t%v\n", errU)
+					w.Write([]byte("bad request's body"))
 					return
 				}
+
+				log.Printf("body posted is:\n\t%v", string(bytesBody))
 
 				// check if there is map key(and value) of paramName
 				if _, ok := reqBody[*paramName]; !ok {
@@ -145,6 +154,18 @@ func main() {
 					errParamEmpty := fmt.Sprintf("empty param(%s) in body", *paramName)
 					log.Println(errParamEmpty)
 					w.Write([]byte(errParamEmpty))
+					return
+				}
+
+				// TODO: (additional check for HD Naumen) - check for "type": "waitingLines"; if no such key-value - skip)
+				if len(*bodyCondition) != 0 {
+					bodyConditionKey = strings.Split(*bodyCondition, ":")[0]
+					bodyConditionVal = strings.Split(*bodyCondition, ":")[1]
+				}
+
+				if reqBody[bodyConditionKey] != bodyConditionVal {
+					log.Printf("additional condition for request body is not met: '%s'", *bodyCondition)
+					w.Write([]byte("OK"))
 					return
 				}
 
@@ -166,8 +187,9 @@ func main() {
 			if errI != nil {
 				paramDbInsert := fmt.Sprintf("failed to insert '%s' param into db:\n\t%v\n", paramVal, errI)
 				// mail this error
-				mailing.SendPlainEmailWoAuth(mailingFile, "report", appName, []byte(paramDbInsert))
+				mailing.SendPlainEmailWoAuth(mailingFile, "error", appName, []byte(paramDbInsert))
 				log.Println(paramDbInsert)
+				return
 			}
 
 			paramProcessed := fmt.Sprintf("%s param successfully processed, waiting for next request", paramVal)

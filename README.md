@@ -3,11 +3,11 @@ What program does: run web server, listen for correct call and write call's para
 This program uses Sqllite3 dbms. Required github.com/ncruces/go-sqlite3/driver.
 
 Flags:
-* log-dir
-* keep-logs
-* port
-* mode
-* param-name
+* log-dir - path to logs dir; default is relative to exe - 'logs_http-param-to-db'
+* port - custom port for http server; default is 3000
+* mode - body/param; default is 'body'; read below
+* param-name - param to seek in request body/param and insert into db 
+* body-condition - optional condition to be met in 'body' request, format is 'key:value'; read below
 
 <h2>'mode' flag values</h2>
 
@@ -36,6 +36,18 @@ Example of json body('UUID' will be found and, for example, 'delegate' will not)
     }
   }
 ```
+Normally, must be as such:
+```
+{
+    "YOUR-PARAM":"***",
+    "some-value":***, 
+    "maybe-another-value":***
+}
+```
+
+There is additional flag for condition to be met in json body in format "key:value".
+If condition is not "", then accept POST only if condition is found in reques body.
+This 'key-value' pair also must not be nested!
 
 <h3>'param'</h3>
 * param - run web server(default port is 3000) and listen for POST with "value" parameter in URL like 
