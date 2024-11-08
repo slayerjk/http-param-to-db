@@ -109,11 +109,11 @@ mailing.json
 
 <h3>Examples</h3>
 
-# Run in mode 'param': waits for POST to URL: http://<your server ip>/api?UUID=<value> and writes <value> to DB(only UNIQUE)
+* Run in mode 'param': waits for POST to URL: http://<your server ip>/api?UUID=<value> and writes <value> to DB(only UNIQUE)
 > ./http-param-to-db.exe -mode param 
 
-# Run in mode 'param': waits for POST to URL: http://<your server host>/api?my-value=<value> and writes <value> of 'my-value' param to DB(only UNIQUE)
+* Run in mode 'param': waits for POST to URL: http://<your server host>/api?my-value=<value> and writes <value> of 'my-value' param to DB(only UNIQUE)
 > ./http-param-to-db.exe -mode param -param-name my-value
 
-# Run in mode 'body'(by default): waits for POST to URL: http://<your server host>/api with not nested 'UUID' param(by default) and 'type' = 'waitingLines' (key:value) in JSON body. Writes 'UUID' value to DB(only UNIQUE)
+* Run in mode 'body'(by default): waits for POST to URL: http://<your server host>/api with not nested 'UUID' param(by default) and 'type' = 'waitingLines' (key:value) in JSON body. Writes 'UUID' value to DB(only UNIQUE)
 > ./http-param-to-db.exe -body-condition type:waitingLines
