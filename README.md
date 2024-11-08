@@ -88,6 +88,23 @@ Rename it to 'mailing.json' and fill with your values.
 For now only for unauthorized SMTP:25.
 Mail for errors and success for processed queries.
 
+mailing.json
+```
+{
+    "host": "my-smtp@example.com",
+    "port": 25,
+    "from_addr": "my-app@example.com",
+    "to_addr_errors": [
+        "admin-1@example.com",
+        "admin-2@example.com"
+    ],
+    "to_addr_reports": [
+        "user-1@example.com",
+        "user-2@example.com"
+    ]
+}
+```
+
 <h3>Examples</h3>
 
 # Run in mode 'param': waits for POST to URL: http://<your server ip>/api?UUID=<value> and writes <value> to DB(only UNIQUE)
