@@ -81,3 +81,20 @@ CREATE TABLE "Data" (
 
 data_BLANK.db - is just empty DB with stucture described above. 
 Rename it to data.db to use with application.
+
+<h3>mailing</h3>
+There is also in 'data' dir mailing_BLANK.json. 
+Rename it to 'mailing.json' and fill with your values.
+For now only for unauthorized SMTP:25.
+Mail for errors and success for processed queries.
+
+<h3>Examples</h3>
+
+# Run in mode 'param': waits for POST to URL: http://<your server ip>/api?UUID=<value> and writes <value> to DB(only UNIQUE)
+> ./http-param-to-db.exe -mode param 
+
+# Run in mode 'param': waits for POST to URL: http://<your server host>/api?my-value=<value> and writes <value> of 'my-value' param to DB(only UNIQUE)
+> ./http-param-to-db.exe -mode param -param-name my-value
+
+# Run in mode 'body'(by default): waits for POST to URL: http://<your server host>/api with not nested 'UUID' param(by default) and 'type' = 'waitingLines' (key:value) in JSON body. Writes 'UUID' value to DB(only UNIQUE)
+> ./http-param-to-db.exe -body-condition type:waitingLines
