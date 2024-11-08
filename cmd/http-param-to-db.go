@@ -92,8 +92,9 @@ func main() {
 			case "param":
 				// porcess only request with paramName(value) in it
 				if !r.URL.Query().Has(*paramName) {
-					w.Write([]byte("no param in POST"))
-					log.Printf("No '%s' param in POST", *paramName)
+					errParamNo := fmt.Sprintf("no required param(%s) in body", *paramName)
+					w.Write([]byte(errParamNo))
+					log.Println(errParamNo)
 					return
 				}
 
