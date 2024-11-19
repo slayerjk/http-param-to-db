@@ -8,6 +8,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"regexp"
 	"strings"
 	"time"
 
@@ -37,6 +38,7 @@ func main() {
 		dbValueColumn      string = "Value"
 		dbPostedDateColumn string = "Posted_Date"
 		logsToKeep         int    = 7
+		mailErr            error
 	)
 
 	// flags
@@ -46,6 +48,7 @@ func main() {
 	mode := flag.String("mode", "body", "work mode: wait for url 'param' or 'body' contente(json)")
 	paramName := flag.String("param-name", "UUID", "param name/json value to process")
 	bodyCondition := flag.String("body-condition", "", "additional json 'body' condition to accept, format is 'key:value'")
+	mailingOpt := flag.Bool("m", false, "turn the mailing options on(use 'data/mailing.json')")
 
 	flag.Parse()
 
@@ -66,8 +69,14 @@ func main() {
 
 	// no point to start program if there is no db file
 	if _, errDb := os.Stat(dbFile); errDb != nil {
-		// mail this error
-		mailing.SendPlainEmailWoAuth(mailingFile, "error", appName, []byte("cant find 'data/data.db' file"))
+		// mail this error if mailing option is on
+		if *mailingOpt {
+			mailErr = mailing.SendPlainEmailWoAuth(mailingFile, "error", appName, []byte("cant find 'data/data.db' file"))
+			if mailErr != nil {
+				log.Printf("failed to send email:\n\t%v", mailErr)
+			}
+		}
+
 		log.Fatalf("'data/data.db' file(%s) doesn't exist", dbFile)
 	}
 
@@ -109,8 +118,13 @@ func main() {
 
 				// TODO: add check for name regexp, must be(?) "RP\d+" (data$11101)
 				paramPosted := fmt.Sprintf("Param posted: %s", paramVal)
-				// mail this error
-				// mailing.SendPlainEmailWoAuth(mailingFile, "report", appName, []byte(paramPosted))
+				// mail this error if mailing option is on
+				// if *mailingOpt {
+				// mailErr = mailing.SendPlainEmailWoAuth(mailingFile, "report", appName, []byte(paramPosted))
+				// if mailErr != nil {
+				// 	log.Printf("failed to send email:\n\t%v", mailErr)
+				// }
+				// }
 				log.Println(paramPosted)
 				w.Write([]byte("OK"))
 
@@ -157,46 +171,80 @@ func main() {
 					return
 				}
 
-				// TODO: (additional check for HD Naumen) - check for "type": "waitingLines"; if no such key-value - skip)
+				// check body condition
 				if len(*bodyCondition) != 0 {
 					bodyConditionKey = strings.Split(*bodyCondition, ":")[0]
 					bodyConditionVal = strings.Split(*bodyCondition, ":")[1]
 				}
-
-				if reqBody[bodyConditionKey] != bodyConditionVal {
-					log.Printf("additional condition for request body is not met: '%s'", *bodyCondition)
-					w.Write([]byte("OK"))
-					return
+				// check only if flag is not empty
+				if *bodyCondition != "" {
+					if reqBody[bodyConditionKey] != bodyConditionVal {
+						log.Printf("additional condition for request body is not met: '%s'", *bodyCondition)
+						w.Write([]byte("OK"))
+						return
+					}
 				}
-
 				w.Write([]byte("OK"))
 			}
 
-			// open db
-			db, err := sql.Open("sqlite3", "file:"+dbFile)
-			if err != nil {
-				// TODO: add 'error' email
-				log.Fatalf("failed to open db:\n\t%v", err)
-			}
-			defer db.Close()
+			// 3 atempts to insert data into db
+			for i := 1; i < 4; i++ {
+				// open db
+				db, err := sql.Open("sqlite3", "file:"+dbFile)
+				if err != nil {
+					// TODO: add 'error' email
+					log.Fatalf("failed to open db:\n\t%v", err)
+				}
+				defer db.Close()
+				// insert name param into db
+				postedDate := time.Now().Format("02.01.2006 15:04:05")
+				query := fmt.Sprintf("INSERT INTO %s (%s, %s) values('%s', '%s')", dbDataTable, dbValueColumn, dbPostedDateColumn, paramVal, postedDate)
+				_, errI := db.Exec(query)
+				if errI != nil {
+					paramDbInsert := fmt.Sprintf("failed to insert '%s' param into db('%s'):\n\t%v\n", paramVal, dbFile, errI)
 
-			// insert name param into db
-			postedDate := time.Now().Format("02.01.2006 15:04:05")
-			query := fmt.Sprintf("INSERT INTO %s (%s, %s) values('%s', '%s')", dbDataTable, dbValueColumn, dbPostedDateColumn, paramVal, postedDate)
-			_, errI := db.Exec(query)
-			if errI != nil {
-				paramDbInsert := fmt.Sprintf("failed to insert '%s' param into db:\n\t%v\n", paramVal, errI)
-				// mail this error
-				mailing.SendPlainEmailWoAuth(mailingFile, "error", appName, []byte(paramDbInsert))
-				log.Println(paramDbInsert)
-				return
+					// don't check UNIQUE constraint "sqlite3: constraint failed: UNIQUE constraint failed: Data.Value"
+					regexpErrUnique := regexp.MustCompile("UNIQUE constraint")
+					errorStr := fmt.Sprintf("%v", errI)
+					if len(regexpErrUnique.Find([]byte(errorStr))) != 0 {
+						log.Println(paramDbInsert)
+						break
+					}
+
+					log.Printf("attemp %d/3 to insert data into db failed, trying again in 5 sec\n", i)
+					time.Sleep(5 * time.Second)
+					// mail this error if mailing option is on
+					if *mailingOpt {
+						mailErr = mailing.SendPlainEmailWoAuth(mailingFile, "error", appName, []byte(paramDbInsert))
+						if mailErr != nil {
+							log.Printf("failed to send email:\n\t%v", mailErr)
+						}
+					}
+
+					log.Println(paramDbInsert)
+					db.Close()
+
+					// stop attempts to insert
+					if i == 3 {
+						return
+					}
+					continue
+				}
+
+				paramProcessed := fmt.Sprintf("%s param successfully processed, waiting for next request", paramVal)
+				// mail this if mailing option is on
+				if *mailingOpt {
+					mailErr = mailing.SendPlainEmailWoAuth(mailingFile, "report", appName, []byte(paramProcessed))
+					if mailErr != nil {
+						log.Printf("failed to send email:\n\t%v", mailErr)
+					}
+				}
+
+				log.Println(paramProcessed)
+				db.Close()
+				break
 			}
 
-			paramProcessed := fmt.Sprintf("%s param successfully processed, waiting for next request", paramVal)
-			// mail this
-			mailing.SendPlainEmailWoAuth(mailingFile, "report", appName, []byte(paramProcessed))
-			log.Println(paramProcessed)
-			db.Close()
 			return
 		}
 
