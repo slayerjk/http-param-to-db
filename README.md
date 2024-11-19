@@ -11,6 +11,7 @@ Flags:
 * mode - body/param; default is 'body'; read below
 * param-name - param to seek in request body/param and insert into db 
 * body-condition - optional condition to be met in 'body' request, format is 'key:value'; read below
+* m - mailing ON, use 'data/mailing.json'
 
 <h2>'mode' flag values</h2>
 
