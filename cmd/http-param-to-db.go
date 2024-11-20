@@ -200,35 +200,45 @@ func main() {
 				postedDate := time.Now().Format("02.01.2006 15:04:05")
 				query := fmt.Sprintf("INSERT INTO %s (%s, %s) values('%s', '%s')", dbDataTable, dbValueColumn, dbPostedDateColumn, paramVal, postedDate)
 				_, errI := db.Exec(query)
+
 				if errI != nil {
 					paramDbInsert := fmt.Sprintf("failed to insert '%s' param into db('%s'):\n\t%v\n", paramVal, dbFile, errI)
 
-					// don't check UNIQUE constraint "sqlite3: constraint failed: UNIQUE constraint failed: Data.Value"
-					regexpErrUnique := regexp.MustCompile("UNIQUE constraint")
+					// repeat only if sqlite3 error "sqlite3: unable to open database file"
+					regexpErrUnique := regexp.MustCompile("sqlite3: unable to open database file")
 					errorStr := fmt.Sprintf("%v", errI)
 					if len(regexpErrUnique.Find([]byte(errorStr))) != 0 {
 						log.Println(paramDbInsert)
-						break
+						log.Printf("attemp %d/3 to insert data into db failed, trying again in 5 sec\n", i)
+						time.Sleep(5 * time.Second)
+						db.Close()
+						// stop attempts to insert if it's 3d attempt already
+						if i == 3 {
+							log.Println("all 3 attempts is failed")
+							log.Println(paramDbInsert)
+							// mail this error if mailing option is on
+							if *mailingOpt {
+								mailErr = mailing.SendPlainEmailWoAuth(mailingFile, "error", appName, []byte(paramDbInsert))
+								if mailErr != nil {
+									log.Printf("failed to send email:\n\t%v", mailErr)
+								}
+							}
+							return
+						}
+						continue
 					}
 
-					log.Printf("attemp %d/3 to insert data into db failed, trying again in 5 sec\n", i)
-					time.Sleep(5 * time.Second)
-					// mail this error if mailing option is on
+					// if sqlite3 error not "sqlite3: unable to open database file" - return
+					db.Close()
+					log.Println(paramDbInsert)
+					// mail this Derror if mailing option is on
 					if *mailingOpt {
 						mailErr = mailing.SendPlainEmailWoAuth(mailingFile, "error", appName, []byte(paramDbInsert))
 						if mailErr != nil {
 							log.Printf("failed to send email:\n\t%v", mailErr)
 						}
 					}
-
-					log.Println(paramDbInsert)
-					db.Close()
-
-					// stop attempts to insert
-					if i == 3 {
-						return
-					}
-					continue
+					return
 				}
 
 				paramProcessed := fmt.Sprintf("%s param successfully processed, waiting for next request", paramVal)
