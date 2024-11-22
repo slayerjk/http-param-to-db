@@ -32,7 +32,7 @@ func main() {
 	// defining default values
 	var (
 		dbFile             string = vafswork.GetExePath() + "/data/data.db"
-		mailingFile        string = vafswork.GetExePath() + "/data/mailing.json"
+		mailingFileDefault string = vafswork.GetExePath() + "/data/mailing.json"
 		logPath            string = vafswork.GetExePath() + "/logs" + "_" + appName
 		dbDataTable        string = "Data"
 		dbValueColumn      string = "Value"
@@ -49,6 +49,7 @@ func main() {
 	paramName := flag.String("param-name", "UUID", "param name/json value to process")
 	bodyCondition := flag.String("body-condition", "", "additional json 'body' condition to accept, format is 'key:value'")
 	mailingOpt := flag.Bool("m", false, "turn the mailing options on(use 'data/mailing.json')")
+	mailingFile := flag.String("mailing-file", mailingFileDefault, "full path to 'mailing.json'")
 
 	flag.Parse()
 
@@ -71,7 +72,7 @@ func main() {
 	if _, errDb := os.Stat(dbFile); errDb != nil {
 		// mail this error if mailing option is on
 		if *mailingOpt {
-			mailErr = mailing.SendPlainEmailWoAuth(mailingFile, "error", appName, []byte("cant find 'data/data.db' file"))
+			mailErr = mailing.SendPlainEmailWoAuth(*mailingFile, "error", appName, []byte("cant find 'data/data.db' file"))
 			if mailErr != nil {
 				log.Printf("failed to send email:\n\t%v", mailErr)
 			}
@@ -218,7 +219,7 @@ func main() {
 							log.Println(paramDbInsert)
 							// mail this error if mailing option is on
 							if *mailingOpt {
-								mailErr = mailing.SendPlainEmailWoAuth(mailingFile, "error", appName, []byte(paramDbInsert))
+								mailErr = mailing.SendPlainEmailWoAuth(*mailingFile, "error", appName, []byte(paramDbInsert))
 								if mailErr != nil {
 									log.Printf("failed to send email:\n\t%v", mailErr)
 								}
@@ -233,7 +234,7 @@ func main() {
 					log.Println(paramDbInsert)
 					// mail this Derror if mailing option is on
 					if *mailingOpt {
-						mailErr = mailing.SendPlainEmailWoAuth(mailingFile, "error", appName, []byte(paramDbInsert))
+						mailErr = mailing.SendPlainEmailWoAuth(*mailingFile, "error", appName, []byte(paramDbInsert))
 						if mailErr != nil {
 							log.Printf("failed to send email:\n\t%v", mailErr)
 						}
@@ -244,7 +245,7 @@ func main() {
 				paramProcessed := fmt.Sprintf("%s param successfully processed, waiting for next request", paramVal)
 				// mail this if mailing option is on
 				if *mailingOpt {
-					mailErr = mailing.SendPlainEmailWoAuth(mailingFile, "report", appName, []byte(paramProcessed))
+					mailErr = mailing.SendPlainEmailWoAuth(*mailingFile, "report", appName, []byte(paramProcessed))
 					if mailErr != nil {
 						log.Printf("failed to send email:\n\t%v", mailErr)
 					}
