@@ -12,7 +12,7 @@ Flags:
 * param-name - param to seek in request body/param and insert into db 
 * body-condition - optional condition to be met in 'body' request, format is 'key:value'; read below
 * m - mailing ON, use 'data/mailing.json'
-* mailing-file - full path to 'mailing.json'
+* mailing-file(full path to 'mailing.json', default is in the "data/mailing.json")
 
 <h2>'mode' flag values</h2>
 
