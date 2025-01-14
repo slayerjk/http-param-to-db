@@ -37,13 +37,12 @@ func main() {
 		dbDataTable        string = "Data"
 		dbValueColumn      string = "Value"
 		dbPostedDateColumn string = "Posted_Date"
-		logsToKeep         int    = 7
 		mailErr            error
 	)
 
 	// flags
 	logsDir := flag.String("log-dir", logPath, "set custom log dir")
-	// logsToKeep := flag.Int("keep-logs", 7, "set number of logs to keep after rotation")
+	logsToKeep := flag.Int("keep-logs", 30, "set number of logs to keep after rotation")
 	httpPort := flag.String("port", "3000", "http server port")
 	mode := flag.String("mode", "body", "work mode: wait for url 'param' or 'body' contente(json)")
 	paramName := flag.String("param-name", "UUID", "param name/json value to process")
@@ -54,7 +53,7 @@ func main() {
 	flag.Parse()
 
 	// logging
-	logFile, err := logging.StartLogging(appName, *logsDir, logsToKeep)
+	logFile, err := logging.StartLogging(appName, *logsDir)
 	if err != nil {
 		log.Fatalf("failed to start logging:\n\t%s", err)
 	}
@@ -65,6 +64,14 @@ func main() {
 	// startTime := time.Now()
 	log.Println("Program Started")
 	log.Printf("mode is: %s\n", *mode)
+
+	// rotate logs first
+	log.Println("logrotate first:")
+	if err := vafswork.RotateFilesByMtime(*logsDir, *logsToKeep); err != nil {
+		log.Fatalf("failure to rotate logs:\n\t%s", err)
+	}
+	log.Println("logs rotation done")
+	log.Println("-----")
 
 	// main code here
 

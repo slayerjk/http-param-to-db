@@ -4,7 +4,7 @@ go 1.23.0
 
 require (
 	github.com/ncruces/go-sqlite3 v0.19.0
-	github.com/slayerjk/go-logging v0.0.1
+	github.com/slayerjk/go-logging v0.0.2
 	github.com/slayerjk/go-mailing v0.0.1
 	github.com/slayerjk/go-vafswork v0.0.1
 )

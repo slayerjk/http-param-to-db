@@ -13,6 +13,7 @@ Flags:
 * body-condition - optional condition to be met in 'body' request, format is 'key:value'; read below
 * m - mailing ON, use 'data/mailing.json'
 * mailing-file(full path to 'mailing.json', default is in the "data/mailing.json")
+* keep-logs - number of log files to keep; default = 30; logs are rotated at start of app
 
 <h2>'mode' flag values</h2>
 
