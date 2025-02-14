@@ -65,6 +65,7 @@ func main() {
 	logFile, err := os.OpenFile(logFilePath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
 	if err != nil {
 		fmt.Fprintf(os.Stdout, "failed to open created log file %s:\n\t%v", logFilePath, err)
+		os.Exit(1)
 	}
 	defer logFile.Close()
 	// set logger
