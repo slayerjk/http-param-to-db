@@ -7,11 +7,12 @@
 !go.mod
 
 # main packages
-!cmd/http-param-to-db.go
-!cmd/.goreleaser.yaml
+!cmd/http-param-to-db/http-param-to-db.go
+!cmd/http-param-to-db/handlers.go
+!cmd/http-param-to-db/routes.go
+!cmd/http-param-to-db/.goreleaser.yaml
 
 # internal packages
-!internal/logging/logging.go
 !internal/vafswork/vafswork.go
 !inernal/mailing/mailing.go
 
