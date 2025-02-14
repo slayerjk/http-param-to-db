@@ -5,7 +5,7 @@ import (
 	"flag"
 	"fmt"
 	"io"
-	"log"
+	"log/slog"
 	"net/http"
 	"os"
 	"regexp"
@@ -19,7 +19,7 @@ import (
 	_ "github.com/ncruces/go-sqlite3/embed"
 
 	// internal packages
-	logging "github.com/slayerjk/go-logging"
+
 	mailing "github.com/slayerjk/go-mailing"
 	vafswork "github.com/slayerjk/go-vafswork"
 )
@@ -53,25 +53,33 @@ func main() {
 	flag.Parse()
 
 	// logging
-	logFile, err := logging.StartLogging(appName, *logsDir)
-	if err != nil {
-		log.Fatalf("failed to start logging:\n\t%s", err)
+	// create log dir
+	if err := os.MkdirAll(*logsDir, os.ModePerm); err != nil {
+		fmt.Fprintf(os.Stdout, "failed to create log dir %s:\n\t%v", *logsDir, err)
 	}
-
+	// set current date
+	dateNow := time.Now().Format("02.01.2006")
+	// create log file
+	logFilePath := fmt.Sprintf("%s/%s_%s.log", *logsDir, appName, dateNow)
+	// open log file in append mode
+	logFile, err := os.OpenFile(logFilePath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
+	if err != nil {
+		fmt.Fprintf(os.Stdout, "failed to open created log file %s:\n\t%v", logFilePath, err)
+	}
 	defer logFile.Close()
+	// set logger
+	logger := slog.New(slog.NewTextHandler(logFile, nil))
 
 	// starting programm notification
 	// startTime := time.Now()
-	log.Println("Program Started")
-	log.Printf("mode is: %s\n", *mode)
+	logger.Info("Program Started", slog.Any("mode", *mode))
 
 	// rotate logs first
-	log.Println("logrotate first:")
+	logger.Info("logrotate first")
 	if err := vafswork.RotateFilesByMtime(*logsDir, *logsToKeep); err != nil {
-		log.Fatalf("failure to rotate logs:\n\t%s", err)
+		logger.Warn("failure to rotate logs", slog.Any("error", err))
 	}
-	log.Println("logs rotation done")
-	log.Println("-----")
+	logger.Info("logs rotation done")
 
 	// main code here
 
@@ -81,16 +89,17 @@ func main() {
 		if *mailingOpt {
 			mailErr = mailing.SendPlainEmailWoAuth(*mailingFile, "error", appName, []byte("cant find 'data/data.db' file"))
 			if mailErr != nil {
-				log.Printf("failed to send email:\n\t%v", mailErr)
+				logger.Warn("failed to send email", slog.Any("error", mailErr))
 			}
 		}
 
-		log.Fatalf("'data/data.db' file(%s) doesn't exist", dbFile)
+		logger.Error("db file doesn't exist", slog.Any("db file", dbFile))
+		os.Exit(1)
 	}
 
 	// root http handler
 	rootHandler := func(w http.ResponseWriter, r *http.Request) {
-		log.Printf("Got query: %s%s from %s, method: %s", r.Host, r.URL.Path, r.RemoteAddr, r.Method)
+		logger.Info("Got query", "host", r.Host, "url path", r.URL.Path, "remote addr", r.RemoteAddr, "method", r.Method)
 		w.Write([]byte("HELLO!"))
 	}
 
@@ -99,7 +108,7 @@ func main() {
 		// define result var
 		var paramVal string
 
-		log.Printf("Got query: %s%s from %s, method: %s", r.Host, r.URL.Path, r.RemoteAddr, r.Method)
+		logger.Info("Got query", "host", r.Host, "url path", r.URL.Path, "remote addr", r.RemoteAddr, "method", r.Method)
 
 		// process only POST requests
 		if r.Method == "POST" {
@@ -111,7 +120,7 @@ func main() {
 				if !r.URL.Query().Has(*paramName) {
 					errParamNo := fmt.Sprintf("no required param(%s) in body", *paramName)
 					w.Write([]byte(errParamNo))
-					log.Println(errParamNo)
+					logger.Warn(errParamNo)
 					return
 				}
 
@@ -119,7 +128,7 @@ func main() {
 
 				// skip empty param
 				if len(paramVal) == 0 {
-					log.Printf("empty '%s' param posted\n", *paramName)
+					logger.Warn("empty param posted", "param", *paramName)
 					w.Write([]byte("empty param"))
 					return
 				}
@@ -130,10 +139,10 @@ func main() {
 				// if *mailingOpt {
 				// mailErr = mailing.SendPlainEmailWoAuth(mailingFile, "report", appName, []byte(paramPosted))
 				// if mailErr != nil {
-				// 	log.Printf("failed to send email:\n\t%v", mailErr)
+				// 	logger.Printf("failed to send email:\n\t%v", mailErr)
 				// }
 				// }
-				log.Println(paramPosted)
+				logger.Info(paramPosted)
 				w.Write([]byte("OK"))
 
 			case "body":
@@ -147,7 +156,7 @@ func main() {
 				// read request body
 				bytesBody, errR := io.ReadAll(r.Body)
 				if errR != nil {
-					log.Printf("failed to read request body:\n\t%v\n", errR)
+					logger.Warn("failed to read request body", slog.Any("err", errR))
 					w.Write([]byte("bad request's body"))
 					return
 				}
@@ -155,17 +164,17 @@ func main() {
 				// unmarshall json
 				errU := json.Unmarshal(bytesBody, &reqBody)
 				if errU != nil {
-					log.Printf("failed to unmarshall request body:\n\t%v\n", errU)
+					logger.Warn("failed to unmarshall request body", slog.Any("err", errU))
 					w.Write([]byte("bad request's body"))
 					return
 				}
 
-				log.Printf("body posted is:\n\t%v", string(bytesBody))
+				logger.Info("body posted", "body", string(bytesBody))
 
 				// check if there is map key(and value) of paramName
 				if _, ok := reqBody[*paramName]; !ok {
 					errParamNo := fmt.Sprintf("no required param(%s) in body", *paramName)
-					log.Println(errParamNo)
+					logger.Warn(errParamNo)
 					w.Write([]byte(errParamNo))
 					return
 				}
@@ -174,7 +183,7 @@ func main() {
 				paramVal = reqBody[*paramName].(string)
 				if len(paramVal) == 0 {
 					errParamEmpty := fmt.Sprintf("empty param(%s) in body", *paramName)
-					log.Println(errParamEmpty)
+					logger.Warn(errParamEmpty)
 					w.Write([]byte(errParamEmpty))
 					return
 				}
@@ -187,7 +196,7 @@ func main() {
 				// check only if flag is not empty
 				if *bodyCondition != "" {
 					if reqBody[bodyConditionKey] != bodyConditionVal {
-						log.Printf("additional condition for request body is not met: '%s'", *bodyCondition)
+						logger.Warn("additional condition for request body is not met", "condition", *bodyCondition)
 						w.Write([]byte("OK"))
 						return
 					}
@@ -200,8 +209,16 @@ func main() {
 				// open db
 				db, err := sql.Open("sqlite3", "file:"+dbFile)
 				if err != nil {
-					// TODO: add 'error' email
-					log.Fatalf("failed to open db:\n\t%v", err)
+					paramDbOpen := fmt.Sprintf("failed to open db before insert:\n\t%v", err)
+					logger.Error(paramDbOpen)
+					// mail this error if mailing option is on
+					if *mailingOpt {
+						mailErr = mailing.SendPlainEmailWoAuth(*mailingFile, "error", appName, []byte(paramDbOpen))
+						if mailErr != nil {
+							logger.Warn("failed to send email", slog.Any("err", mailErr))
+						}
+					}
+					os.Exit(1)
 				}
 				defer db.Close()
 				// insert name param into db
@@ -216,19 +233,19 @@ func main() {
 					regexpErrUnique := regexp.MustCompile("sqlite3: unable to open database file")
 					errorStr := fmt.Sprintf("%v", errI)
 					if len(regexpErrUnique.Find([]byte(errorStr))) != 0 {
-						log.Println(paramDbInsert)
-						log.Printf("attemp %d/3 to insert data into db failed, trying again in 5 sec\n", i)
+						logger.Info(paramDbInsert)
+						logger.Warn("attemp to insert data into db failed, trying again in 5 sec", slog.Any("attempt", i))
 						time.Sleep(5 * time.Second)
 						db.Close()
 						// stop attempts to insert if it's 3d attempt already
 						if i == 3 {
-							log.Println("all 3 attempts is failed")
-							log.Println(paramDbInsert)
+							logger.Warn("all 3 attempts is failed")
+							logger.Info(paramDbInsert)
 							// mail this error if mailing option is on
 							if *mailingOpt {
 								mailErr = mailing.SendPlainEmailWoAuth(*mailingFile, "error", appName, []byte(paramDbInsert))
 								if mailErr != nil {
-									log.Printf("failed to send email:\n\t%v", mailErr)
+									logger.Warn("failed to send email", slog.Any("err", mailErr))
 								}
 							}
 							return
@@ -238,12 +255,12 @@ func main() {
 
 					// if sqlite3 error not "sqlite3: unable to open database file" - return
 					db.Close()
-					log.Println(paramDbInsert)
+					logger.Info(paramDbInsert)
 					// mail this Derror if mailing option is on
 					if *mailingOpt {
 						mailErr = mailing.SendPlainEmailWoAuth(*mailingFile, "error", appName, []byte(paramDbInsert))
 						if mailErr != nil {
-							log.Printf("failed to send email:\n\t%v", mailErr)
+							logger.Warn("failed to send email", slog.Any("err", mailErr))
 						}
 					}
 					return
@@ -254,11 +271,11 @@ func main() {
 				if *mailingOpt {
 					mailErr = mailing.SendPlainEmailWoAuth(*mailingFile, "report", appName, []byte(paramProcessed))
 					if mailErr != nil {
-						log.Printf("failed to send email:\n\t%v", mailErr)
+						logger.Warn("failed to send email", slog.Any("err", mailErr))
 					}
 				}
 
-				log.Println(paramProcessed)
+				logger.Info(paramProcessed)
 				db.Close()
 				break
 			}
@@ -270,16 +287,18 @@ func main() {
 	}
 
 	// starting web server
-	mux := http.DefaultServeMux
+	mux := http.NewServeMux()
 
 	// Register HTTP handlers
 	http.HandleFunc("/", rootHandler)
 	http.HandleFunc("/api", postHandler)
 
 	// Start Web Server
+	logger.Info("Http server is going to be started", "port", *httpPort)
+
 	errS := http.ListenAndServe(":"+*httpPort, mux)
 	if errS != nil {
-		log.Fatal("failed to start web server")
+		logger.Error("failed to start web server", slog.Any("error", errS))
+		os.Exit(1)
 	}
-	log.Printf("Http server is going to be started on port %s", *httpPort)
 }
