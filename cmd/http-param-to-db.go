@@ -56,6 +56,7 @@ func main() {
 	// create log dir
 	if err := os.MkdirAll(*logsDir, os.ModePerm); err != nil {
 		fmt.Fprintf(os.Stdout, "failed to create log dir %s:\n\t%v", *logsDir, err)
+		os.Exit(1)
 	}
 	// set current date
 	dateNow := time.Now().Format("02.01.2006")
