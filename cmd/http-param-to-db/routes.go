@@ -9,7 +9,8 @@ func (app *application) routes() *http.ServeMux {
 
 	// Register HTTP handlers
 	mux.HandleFunc("GET /", app.rootHandler)
-	mux.HandleFunc("POST /api", app.postHandler)
+	mux.HandleFunc("GET /api", app.apiGetHandler)
+	mux.HandleFunc("POST /api", app.apiPostHandler)
 
 	return mux
 }
