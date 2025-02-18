@@ -1,6 +1,7 @@
 package main
 
 import (
+	"database/sql"
 	"flag"
 	"fmt"
 	"log/slog"
@@ -17,6 +18,7 @@ import (
 
 	mailing "github.com/slayerjk/go-mailing"
 	vafswork "github.com/slayerjk/go-vafswork"
+	"github.com/slayerjk/http-param-to-db/internal/models"
 )
 
 const (
@@ -24,11 +26,11 @@ const (
 )
 
 type application struct {
-	// mailing option
+	// mailing option is ON(true/false)
 	mailingOpt bool
 	// mailing data file
 	mailingFile string
-	// logger options
+	// logger options(using log/slog)
 	logger *slog.Logger
 	// db file path
 	dbFile string
@@ -44,6 +46,24 @@ type application struct {
 	paramName string
 	// additional body condition('key:value') to parse in POST request
 	bodyCondition string
+	// db pool
+	db *models.DbModel
+}
+
+// open db helper func
+func openDB(dsn string) (*sql.DB, error) {
+	db, err := sql.Open("sqlite3", dsn)
+	if err != nil {
+		return nil, err
+	}
+
+	err = db.Ping()
+	if err != nil {
+		db.Close()
+		return nil, err
+	}
+
+	return db, nil
 }
 
 func main() {
@@ -64,6 +84,7 @@ func main() {
 	bodyCondition := flag.String("body-condition", "", "additional json 'body' condition to accept, format is 'key:value'")
 	mailingOpt := flag.Bool("m", false, "turn the mailing options on(use 'data/mailing.json')")
 	mailingFile := flag.String("mailing-file", mailingFileDefault, "full path to 'mailing.json'")
+	dsn := flag.String("dsn", dbFile, "SQLITE3 db file full path")
 
 	flag.Parse()
 
@@ -87,6 +108,33 @@ func main() {
 	// set logger
 	logger := slog.New(slog.NewTextHandler(logFile, nil))
 
+	// no point to start program if there is no db file
+	if _, errDb := os.Stat(dbFile); errDb != nil {
+		// mail this error if mailing option is on
+		if *mailingOpt {
+			mailErr = mailing.SendPlainEmailWoAuth(*mailingFile, "ERR", appName, []byte("cant find 'data/data.db' file"))
+			if mailErr != nil {
+				logger.Warn("failed to send email", slog.Any("ERR", mailErr))
+			}
+		}
+		logger.Error("db file doesn't exist", slog.Any("DB_FILE", dbFile))
+		os.Exit(1)
+	}
+
+	// open db
+	db, err := openDB(*dsn)
+	if err != nil {
+		// mail this error if mailing option is on
+		if *mailingOpt {
+			mailErr = mailing.SendPlainEmailWoAuth(*mailingFile, "ERR", appName, []byte("failed to open DB file at openDB()"))
+			if mailErr != nil {
+				logger.Warn("failed to send email", slog.Any("ERR", mailErr))
+			}
+		}
+		logger.Error("failed to open DB file", "DSN", *dsn, slog.Any("ERROR", err))
+		os.Exit(1)
+	}
+
 	// init application with deps
 	app := &application{
 		mailingOpt:         *mailingOpt,
@@ -99,6 +147,7 @@ func main() {
 		mode:               *mode,
 		paramName:          *paramName,
 		bodyCondition:      *bodyCondition,
+		db:                 &models.DbModel{DB: db},
 	}
 
 	// starting programm notification
@@ -111,21 +160,6 @@ func main() {
 		logger.Warn("failure to rotate logs", slog.Any("ERR", err))
 	}
 	logger.Info("logs rotation done")
-
-	// main code here
-
-	// no point to start program if there is no db file
-	if _, errDb := os.Stat(dbFile); errDb != nil {
-		// mail this error if mailing option is on
-		if *mailingOpt {
-			mailErr = mailing.SendPlainEmailWoAuth(*mailingFile, "ERR", appName, []byte("cant find 'data/data.db' file"))
-			if mailErr != nil {
-				logger.Warn("failed to send email", slog.Any("ERR", mailErr))
-			}
-		}
-		logger.Error("db file doesn't exist", slog.Any("DB_FILE", app.dbFile))
-		os.Exit(1)
-	}
 
 	// Start Web Server
 	logger.Info("Http server is going to be started", "PORT", *httpPort)

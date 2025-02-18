@@ -14,6 +14,7 @@ Flags:
 * m - mailing ON, use 'data/mailing.json'
 * mailing-file(full path to 'mailing.json', default is in the "data/mailing.json")
 * keep-logs - number of log files to keep; default = 30; logs are rotated at start of app
+* dsn - data source name(dsn); for SQLITE3 it is db file path
 
 <h2>'mode' flag values</h2>
 

@@ -13,8 +13,7 @@
 !cmd/http-param-to-db/.goreleaser.yaml
 
 # internal packages
-!internal/vafswork/vafswork.go
-!inernal/mailing/mailing.go
+!internal/models/dbmodel.go
 
 # data
 !data/data_BLANK.db
