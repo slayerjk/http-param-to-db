@@ -134,6 +134,7 @@ func main() {
 		logger.Error("failed to open DB file", "DSN", *dsn, slog.Any("ERROR", err))
 		os.Exit(1)
 	}
+	defer db.Close()
 
 	// init application with deps
 	app := &application{
