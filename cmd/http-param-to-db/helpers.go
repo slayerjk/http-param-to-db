@@ -2,9 +2,6 @@ package main
 
 import "net/http"
 
-// http.Error(w, errParamNo, http.StatusBadRequest)
-// http.Error(w, "db error", http.StatusInternalServerError)
-
 // return err to logger.Warn and text to response writer(StatusBadRequest)
 func (app *application) badRequestError(w http.ResponseWriter, r *http.Request, loggerError string) {
 	var (
