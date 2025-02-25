@@ -34,9 +34,7 @@ func (app *application) apiPostHandler(w http.ResponseWriter, r *http.Request) {
 	case "param":
 		// porcess only request with paramName flag(value of app.paramName) in it
 		if !r.URL.Query().Has(app.paramName) {
-			errParamNo := fmt.Sprintf("no required param(%s) in body", app.paramName)
-			http.Error(w, errParamNo, http.StatusBadRequest)
-			app.logger.Warn(errParamNo)
+			app.badRequestError(w, r, fmt.Sprintf("no required param(%s) in body", app.paramName))
 			return
 		}
 
@@ -44,8 +42,7 @@ func (app *application) apiPostHandler(w http.ResponseWriter, r *http.Request) {
 
 		// skip empty param
 		if len(paramVal) == 0 {
-			app.logger.Warn("empty param posted", "param", app.paramName)
-			http.Error(w, "empty param", http.StatusBadRequest)
+			app.badRequestError(w, r, "empty param posted")
 			return
 		}
 
@@ -64,16 +61,15 @@ func (app *application) apiPostHandler(w http.ResponseWriter, r *http.Request) {
 		// read request body
 		bytesBody, errR := io.ReadAll(r.Body)
 		if errR != nil {
-			app.logger.Warn("failed to read request body", slog.Any("err", errR))
-			http.Error(w, "failed to read request body", http.StatusBadRequest)
+
+			app.badRequestError(w, r, fmt.Sprintf("failed to read request body, io.Readall:\n\t%v", errR))
 			return
 		}
 
 		// unmarshall json
 		errU := json.Unmarshal(bytesBody, &reqBody)
 		if errU != nil {
-			app.logger.Warn("failed to unmarshall request body", slog.Any("err", errU))
-			http.Error(w, "bad json data", http.StatusBadRequest)
+			app.badRequestError(w, r, fmt.Sprintf("failed to unmarshall request body:\n\t%v", errU))
 			return
 		}
 
@@ -81,18 +77,14 @@ func (app *application) apiPostHandler(w http.ResponseWriter, r *http.Request) {
 
 		// check if there is map key(and value) of app.jsonParam
 		if _, ok := reqBody[app.paramName]; !ok {
-			errParamNo := fmt.Sprintf("no required param(%s) in body", app.paramName)
-			app.logger.Warn(errParamNo)
-			http.Error(w, errParamNo, http.StatusBadRequest)
+			app.badRequestError(w, r, fmt.Sprintf("no required param(%s) in body", app.paramName))
 			return
 		}
 
 		// check if param empty
 		paramVal = reqBody[app.paramName].(string)
 		if len(paramVal) == 0 {
-			errParamEmpty := fmt.Sprintf("empty param(%s) in body", app.paramName)
-			app.logger.Warn(errParamEmpty)
-			http.Error(w, "empty param", http.StatusBadRequest)
+			app.badRequestError(w, r, fmt.Sprintf("empty param(%s) in body", app.paramName))
 			return
 		}
 
@@ -104,8 +96,7 @@ func (app *application) apiPostHandler(w http.ResponseWriter, r *http.Request) {
 		// check only if flag is not empty
 		if app.bodyCondition != "" {
 			if reqBody[bodyConditionKey] != bodyConditionVal {
-				app.logger.Warn("additional condition for request body is not met", "condition", app.bodyCondition)
-				http.Error(w, "additional condittion is not met", http.StatusBadRequest)
+				app.badRequestError(w, r, fmt.Sprintf("additional condition for request body is not met: %s", app.bodyCondition))
 				return
 			}
 		}
@@ -114,28 +105,25 @@ func (app *application) apiPostHandler(w http.ResponseWriter, r *http.Request) {
 	// insert processed data
 	errIns := app.db.InsertProcessed(app.dbFile, app.dbDataTable, app.dbValueColumn, app.dbPostedDateColumn, paramVal)
 	if errIns != nil {
-		errInsert := fmt.Sprintf("failed to Insert %s into db:\n\t%v", paramVal, errIns)
-		app.logger.Error(errInsert)
-
 		// don't mail if error contains "sqlite3: constraint failed: UNIQUE constraint failed"
 		uniqueConstMatched, err := regexp.Match("sqlite3: constraint failed: UNIQUE constraint failed", []byte(errIns.Error()))
 		if err != nil {
-			app.logger.Warn("failed to match insert error with unique constraint condition")
+			app.logger.Warn("failed to MATCH insert error with UNIQUE constraint condition")
 		}
 		if uniqueConstMatched {
-			http.Error(w, "already processed", http.StatusBadRequest)
+			app.badRequestError(w, r, fmt.Sprintf("sqlite3 UNIQUE constraint condition err: %s", paramVal))
 			return
 		}
 
 		// mail this error if mailing option is on
 		if app.mailingOpt {
-			mailErr := mailing.SendPlainEmailWoAuth(app.mailingFile, "error", appName, []byte(errInsert))
+			mailErr := mailing.SendPlainEmailWoAuth(app.mailingFile, "error", appName, []byte(errIns.Error()))
 			if mailErr != nil {
 				app.logger.Warn("failed to send email", slog.Any("err", mailErr))
 			}
 		}
 
-		http.Error(w, "db error", http.StatusInternalServerError)
+		app.serverError(w, r, fmt.Sprintf("failed to Insert %s into db:\n\t%v", paramVal, errIns))
 		return
 	}
 

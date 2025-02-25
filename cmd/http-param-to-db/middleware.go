@@ -11,7 +11,7 @@ func commonHeaders(next http.Handler) http.Handler {
 		w.Header().Set("X-Content-Type-Options", "nosniff")
 		w.Header().Set("X-Frame-Options", "deny")
 		w.Header().Set("X-XSS-Protection", "0")
-		w.Header().Set("Server", "Go")
+		w.Header().Set("Server", "http-param-to-db")
 
 		next.ServeHTTP(w, r)
 	})

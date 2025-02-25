@@ -10,6 +10,8 @@
 !cmd/http-param-to-db/http-param-to-db.go
 !cmd/http-param-to-db/handlers.go
 !cmd/http-param-to-db/routes.go
+!cmd/http-param-to-db/middleware.go
+!cmd/http-param-to-db/helpers.go
 !cmd/http-param-to-db/.goreleaser.yaml
 
 # internal packages
