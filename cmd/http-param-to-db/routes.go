@@ -12,5 +12,5 @@ func (app *application) routes() http.Handler {
 	mux.HandleFunc("GET /api", app.apiGetHandler)
 	mux.HandleFunc("POST /api", app.apiPostHandler)
 
-	return app.logRequest(commonHeaders(mux))
+	return app.recoverPanic(app.logRequest(commonHeaders(mux)))
 }

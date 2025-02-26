@@ -87,7 +87,7 @@ func main() {
 	dsn := flag.String("dsn", dbFile, "SQLITE3 db file full path")
 
 	flag.Usage = func() {
-		fmt.Println("Version: v1.2.0(26.02.2025)")
+		fmt.Println("Version: v1.3.0(26.02.2025)")
 		fmt.Println("Flags:")
 		flag.PrintDefaults()
 	}
