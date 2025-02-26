@@ -12,5 +12,5 @@ func (app *application) routes() http.Handler {
 	mux.HandleFunc("GET /api", app.apiGetHandler)
 	mux.HandleFunc("POST /api", app.apiPostHandler)
 
-	return commonHeaders(mux)
+	return app.logRequest(commonHeaders(mux))
 }

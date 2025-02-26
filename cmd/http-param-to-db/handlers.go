@@ -14,7 +14,6 @@ import (
 
 // GET - root http handler(returns nothing in response) d
 func (app *application) rootHandler(w http.ResponseWriter, r *http.Request) {
-	app.logger.Info("Got query", "host", r.Host, "url path", r.URL.Path, "remote addr", r.RemoteAddr, "method", r.Method)
 	w.WriteHeader(http.StatusOK)
 }
 
@@ -26,8 +25,6 @@ func (app *application) apiGetHandler(w http.ResponseWriter, r *http.Request) {
 // POST - extract query parameter handler
 func (app *application) apiPostHandler(w http.ResponseWriter, r *http.Request) {
 	var paramVal string
-
-	app.logger.Info("Got query", "host", r.Host, "url path", r.URL.Path, "remote addr", r.RemoteAddr, "method", r.Method)
 
 	switch app.mode {
 
