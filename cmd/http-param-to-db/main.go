@@ -87,7 +87,7 @@ func main() {
 	dsn := flag.String("dsn", dbFile, "SQLITE3 db file full path")
 
 	flag.Usage = func() {
-		fmt.Println("Version: v1.3.0(26.02.2025)")
+		fmt.Println("Version: v1.3.1(07.03.2025)")
 		fmt.Println("Flags:")
 		flag.PrintDefaults()
 	}
@@ -111,10 +111,22 @@ func main() {
 		os.Exit(1)
 	}
 	defer logFile.Close()
+
 	// set logger
 	logger := slog.New(slog.NewTextHandler(logFile, nil))
 
-	// no point to start program if there is no db file
+	// starting programm notification
+	// startTime := time.Now()
+	logger.Info("Program Started", slog.Any("MODE", *mode))
+
+	// rotate logs first
+	logger.Info("logrotate first")
+	if err := vafswork.RotateFilesByMtime(*logsDir, *logsToKeep); err != nil {
+		logger.Warn("failure to rotate logs", slog.Any("ERR", err))
+	}
+	logger.Info("logs rotation done")
+
+	// no point to continue if there is no db file
 	if _, errDb := os.Stat(dbFile); errDb != nil {
 		// mail this error if mailing option is on
 		if *mailingOpt {
@@ -157,23 +169,19 @@ func main() {
 		db:                 &models.DbModel{DB: db},
 	}
 
-	// starting programm notification
-	// startTime := time.Now()
-	logger.Info("Program Started", slog.Any("MODE", *mode))
-
-	// rotate logs first
-	logger.Info("logrotate first")
-	if err := vafswork.RotateFilesByMtime(*logsDir, *logsToKeep); err != nil {
-		logger.Warn("failure to rotate logs", slog.Any("ERR", err))
+	// init HTTP Server
+	srv := &http.Server{
+		Addr:         *httpPort,
+		Handler:      app.routes(),
+		ErrorLog:     slog.NewLogLogger(logger.Handler(), slog.LevelError),
+		IdleTimeout:  time.Minute,
+		ReadTimeout:  5 * time.Second,
+		WriteTimeout: 10 * time.Second,
 	}
-	logger.Info("logs rotation done")
 
 	// Start Web Server
 	logger.Info("Http server is going to be started", "PORT", *httpPort)
-
-	errS := http.ListenAndServe(*httpPort, app.routes())
-	if errS != nil {
-		logger.Error("failed to start web server", slog.Any("ERR", errS))
-		os.Exit(1)
-	}
+	err = srv.ListenAndServe()
+	logger.Error(err.Error())
+	os.Exit(1)
 }
